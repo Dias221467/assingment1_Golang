@@ -47,7 +47,8 @@ type application struct {
 	db     *data.DBModel
 	mailer mailer.Mailer
 	models data.Models
-	wg     sync.WaitGroup
+
+	wg sync.WaitGroup
 }
 
 func main() {
@@ -56,6 +57,10 @@ func main() {
 	flag.IntVar(&cfg.port, "port", 4000, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://postgres:lbfc2005@localhost:5432/d.ibragimovDB?sslmode=disable", "PostgreSQL DSN")
+
+	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
+	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
+	flag.StringVar(&cfg.db.maxIdleTime, "db-max-idle-time", "15m", "PostgreSQL max connection idle time")
 
 	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "Enable rate limiter")
 	flag.Float64Var(&cfg.limiter.rps, "limiter-rps", 2, "Rate limiter maximum requests per second")
@@ -74,8 +79,12 @@ func main() {
 	if err != nil {
 		logger.PrintFatal(err, nil)
 	}
-
 	defer db.Close()
+	// dbase, err := openDB(cfg)
+	// if err != nil {
+	// 	logger.PrintFatal(err, nil)
+	// }
+	// defer dbase.Close()
 
 	logger.PrintInfo("database connection pool established", nil)
 
@@ -83,11 +92,17 @@ func main() {
 		DB: db,
 	}
 
+	models := data.NewModels(db)
+	// models := &data.Models{
+	// 	Users: dbase,
+	// }
+
 	app := &application{
 		config: cfg,
 		logger: logger,
 		db:     dbModel,
 		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
+		models: models,
 	}
 
 	srv := &http.Server{
@@ -111,6 +126,22 @@ func openDB(cfg config) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Set the maximum number of open (in-use + idle) connections in the pool. Note that
+	// passing a value less than or equal to 0 will mean there is no limit.
+	// db.SetMaxOpenConns(cfg.db.maxOpenConns)
+	// // Set the maximum number of idle connections in the pool. Again, passing a value
+	// // less than or equal to 0 will mean there is no limit.
+	// db.SetMaxIdleConns(cfg.db.maxIdleConns)
+	// // Use the time.ParseDuration() function to convert the idle timeout duration string
+	// // to a time.Duration type.
+	// duration, err := time.ParseDuration(cfg.db.maxIdleTime)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// // Set the maximum idle timeout.
+	// db.SetConnMaxIdleTime(duration)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	err = db.PingContext(ctx)

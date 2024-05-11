@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -179,6 +180,7 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 			"activationToken": token.Plaintext,
 			"userID":          user.ID,
 		}
+		fmt.Print(token.Plaintext)
 
 		// sending context data to template page
 		err = app.mailer.Send(user.Email, "user_welcome.tmpl", data)
@@ -186,7 +188,9 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 			// Importantly, if there is an error sending the email then we use the
 			// app.logger.PrintError() helper to manage it, instead of the
 			// app.serverErrorResponse() helper like before.
-			app.logger.PrintError(err, nil)
+			app.serverErrorResponse(w, r, err)
+			return
+			// app.logger.PrintError(err, nil)
 		}
 	})
 	// Write a JSON response containing the user data along with a 201 Created status
