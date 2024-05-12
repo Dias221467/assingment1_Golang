@@ -5,34 +5,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 
-	"github.com/Dias221467/assingment1_Golang/internal/data"
-	"github.com/Dias221467/assingment1_Golang/internal/jsonlog"
 	"github.com/julienschmidt/httprouter"
 )
 
-func TestCreateModuleInfoHandlerMissingField(t *testing.T) {
-	// Create a new application instance
+func (app *application) TestCreateModuleInfoHandlerMissingField(t *testing.T) {
 
-	var cfg config
-	cfg.db.dsn = "postgres://postgres:lbfc2005@localhost/d.ibragimovDB?sslmode=disable"
-	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
-
-	db, err := openDB(cfg)
-	if err != nil {
-		logger.PrintFatal(err, nil)
-	}
-	defer db.Close()
-	dbModel := &data.DBModel{
-		DB: db,
-	}
-	app := &application{
-		db: dbModel,
-	}
-	// Create a new router and register the createModuleInfoHandler function
 	router := httprouter.New()
 	router.HandlerFunc(http.MethodPost, "/v1/moduleinfoTEST", app.createModuleInfoHandler)
 
