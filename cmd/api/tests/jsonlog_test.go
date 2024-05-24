@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -35,4 +36,28 @@ func TestJSONLogger_PrintInfo(t *testing.T) {
 	}
 }
 
-// You can add more tests to cover other functions in the jsonlog package
+func TestJSONLogger_PrintError(t *testing.T) {
+	// Create a temporary file for testing
+	tmpfile, err := ioutil.TempFile("", "test_jsonlog_*.log")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpfile.Name()) // Clean up
+
+	// Create a new JSONLogger instance
+	logger := jsonlog.New(tmpfile, jsonlog.LevelError)
+
+	// Log an ERROR message
+	logger.PrintError(errors.New("This is an error message"), nil)
+
+	// Read the content of the temporary file
+	content, err := ioutil.ReadFile(tmpfile.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Check if the log message was written correctly
+	if !strings.Contains(string(content), `"level":"ERROR"`) {
+		t.Error("Expected ERROR log level, got:", string(content))
+	}
+}
